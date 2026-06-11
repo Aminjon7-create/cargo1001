@@ -1,3 +1,7 @@
+import threading
+from http.server import
+BaseHTTPRequeshandler, HTTPServer
+
 import logging
 import pandas as pd
 import asyncio
@@ -7,7 +11,24 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+# Специальный класс, который отвечает серверу Render
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"Bot is running!")
 
+    def log_message(self, format, *args):
+        return  # Отключаем лишние логи в консоли
+
+# Функция для запуска веб-сервера в отдельном потоке
+def run_health_check():
+    # Render автоматически передает порт в переменную окружения PORT, по умолчанию берем 8000
+    import os
+    port = int(os.environ.get("PORT", 8000))
+    server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
+    server.serve_forever()
 # Токен твоего бота, который ты получил у @BotFather
 BOT_TOKEN = "8622628502:AAEkDRwCEPBK91g8TRPKcQVBT67aj4DcCmE"
 
@@ -152,4 +173,8 @@ async def main():
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
+    # Запускаем веб-сервер в фоне, чтобы Render не ругался
+threading.Thread(target=run_health_check, daemon=True).start()
+    
+    # Дальше идет ваш стандартный запуск бота, например:
     asyncio.run(main())
