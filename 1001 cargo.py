@@ -1,6 +1,6 @@
 import threading
 from http.server import
-BaseHTTPRequeshandler, HTTPServer
+BaseHTTPRequestHandler, HTTPServer
 
 import logging
 import pandas as pd
