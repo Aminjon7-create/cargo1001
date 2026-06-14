@@ -184,24 +184,36 @@ async def check_track_code(message: types.Message, state: FSMContext):
         )
     await state.clear()
 
-# --- ЛОГИКА ЗАПУСКА ЧЕРЕЗ ВЕБХУКИ ДЛЯ RENDER ---
+# --- УНИВЕРСАЛЬНАЯ ЛОГИКА ЗАПУСКА (И ДЛЯ ПК, И ДЛЯ RENDER) ---
 async def on_startup(bot: Bot) -> None:
-    RENDER_URL = os.getenv("RENDER_EXTERNAL_URL", "https://your-subdomain.onrender.com")
-    await bot.set_webhook(f"{RENDER_URL}/webhook")
+    RENDER_URL = os.getenv("RENDER_EXTERNAL_URL")
+    if RENDER_URL:
+        await bot.set_webhook(f"{RENDER_URL}/webhook")
+        logging.info(f"Вебхук успешно установлен на: {RENDER_URL}/webhook")
 
 def main():
-    dp.startup.register(on_startup)
-    
-    app = web.Application()
-    webhook_requests_handler = SimpleRequestHandler(
-        dispatcher=dp,
-        bot=bot
-    )
-    webhook_requests_handler.register(app, path="/webhook")
-    setup_application(app, dp, bot=bot)
-    
-    port = int(os.environ.get("PORT", 8000))
-    web.run_app(app, host="0.0.0.0", port=port)
+    # Проверяем, запущен ли код на сервере Render
+    if os.getenv("RENDER") is not None:
+        logging.info("Бот запущен на Render в режиме Webhook!")
+        dp.startup.register(on_startup)
+        
+        app = web.Application()
+        webhook_requests_handler = SimpleRequestHandler(
+            dispatcher=dp,
+            bot=bot
+        )
+        webhook_requests_handler.register(app, path="/webhook")
+        setup_application(app, dp, bot=bot)
+        
+        port = int(os.environ.get("PORT", 8000))
+        web.run_app(app, host="0.0.0.0", port=port)
+    else:
+        logging.info("Бот запущен на домашнем компьютере в режиме Polling!")
+        async def run_polling():
+            await bot.delete_webhook(drop_pending_updates=True)
+            await dp.start_polling(bot)
+        
+        asyncio.run(run_polling())
 
 if __name__ == "__main__":
     main()
