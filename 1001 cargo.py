@@ -213,6 +213,35 @@ async def main():
     print("Бот бо муваффақият оғоз шуд!")
     await dp.start_polling(bot)
 
+import os
+from aiogram import Bot, Dispatcher
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
+from aiohttp import web
+
+# Эти строчки должны быть у вас в начале кода, убедитесь, что они есть:
+# bot = Bot(token=...)
+# dp = Dispatched(...)
+
+async def on_startup(bot: Bot) -> None:
+    # Сюда вставьте URL, который вам даст Render (заменим чуть позже)
+    RENDER_URL = os.getenv("RENDER_EXTERNAL_URL", "https://your-subdomain.onrender.com")
+    await bot.set_webhook(f"{RENDER_URL}/webhook")
+
+def main():
+    dp.startup.register(on_startup)
+    
+    app = web.Application()
+    webhook_requests_handler = SimpleRequestHandler(
+        dispatcher=dp,
+        bot=bot
+    )
+    webhook_requests_handler.register(app, path="/webhook")
+    setup_application(app, dp, bot=bot)
+    
+    port = int(os.environ.get("PORT", 8000))
+    web.run_app(app, host="0.0.0.0", port=port)
+
 if __name__ == "__main__":
+    main()
     asyncio.run(main())
 
