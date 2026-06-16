@@ -7,7 +7,7 @@ from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, URLInputFile, FSInputFile
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, FSInputFile
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiohttp import web
 
@@ -69,7 +69,7 @@ async def show_banned_items(message: types.Message):
         "🚫 **7. Молҳои категорияи 18+:** Интиқоли ин намуди молҳо қатъиян манъ аст❗️\n\n"
         "⚠️ **Донистани он муҳим аст:**\n"
         "Кӯшиши фармоиш додан ё фиристодани молҳои манъшуда боис ба мусодираи онҳо бидуни бозгашт мегардад. "
-        "Дар ин ҳолат ширкати **1001 Cargo** ҳеҷ гуна масъулияти молиро ба уҳда намегирад.\n\n"
+        "Дар ин ҳолат ширкати **1001 Cargo** ҳеҷ гуна масъулияти молиро ба уҳда немӣ-гирад.\n\n"
         "🙏 Хоҳишмандем, ки ин қоидаҳоро дуруст фаҳмед ва тартиби интиқолро риоя намоед!"
     )
     await message.answer(text=banned_text, parse_mode="Markdown")
@@ -90,7 +90,7 @@ async def show_china_warehouse(message: types.Message):
     except Exception as e:
         logging.error(f"Хатогии фиристодани расми Чин: {e}")
 
-# --- ОБРАБОТЧИК ДЛЯ КНОПКИ "Нархнома" ---
+# --- ОБРАБОТЧИК ДЛЯ КНОПКИ "Нархнома" (ОБНОВЛЕН С АКЦИЕЙ) ---
 @dp.message(F.text == "💲 Нархнома")
 async def show_price_list(message: types.Message):
     price_text = (
@@ -104,7 +104,6 @@ async def show_price_list(message: types.Message):
         "💰 Нархи **1 кг = 23 сомонӣ**!\n\n"
         "📦 Дар байни ҳамин 30 рӯз, кадом боре ки дар склади Хитой қабул мешавад, бо ҳамин нархи аксионӣ оварда мешавад!\n\n"
         "🤍 *1001 Cargo дар хизмати шумо!*"
-    
     )
     await message.answer(text=price_text, parse_mode="Markdown")   
 
@@ -198,7 +197,6 @@ async def on_startup(bot: Bot) -> None:
         logging.info(f"Вебхук успешно установлен на: {RENDER_URL}/webhook")
 
 def main():
-    # Проверяем, запущен ли код на сервере Render
     if os.getenv("RENDER") is not None:
         logging.info("Бот запущен на Render в режиме Webhook!")
         dp.startup.register(on_startup)
