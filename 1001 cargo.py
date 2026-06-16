@@ -174,7 +174,7 @@ async def check_track_code(message: types.Message, state: FSMContext):
     if found_status == "Дар Зафаробод":
         await message.answer(
             f"✅ Бале, бори шумо бо трек-коди ({user_track}) қабул карда шуд!{date_text}\n"
-            f"Шумо метавонед омада онро аз Зафаробод гиред."
+            f"Шумо метавонед омада онро аз Мағозаи 1001 гиред."
         )
     elif found_status is not None:
         await message.answer(
