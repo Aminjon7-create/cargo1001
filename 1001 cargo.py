@@ -2,6 +2,7 @@ import logging
 import os
 import pandas as pd
 import asyncio
+import re
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
@@ -110,7 +111,7 @@ async def show_price_list(message: types.Message):
 # --- ОБРАБОТЧИК ДЛЯ КНОПКИ "Тафтиши трек-код" ---
 @dp.message(F.text == "🔢 Тафтиши трек-код")
 async def ask_track_code(message: types.Message, state: FSMContext):
-    await message.answer("📦 Трек-коди бори худро барои тафтиш равон кунед!")
+    await message.answer("📦 Трек-коди бори худро (ё якчанд трек-кодро) барои тафтиш равон кунед!")
     await state.set_state(TrackStates.waiting_for_track)
 
 # --- ОБРАБОТЧИК ДЛЯ КНОПКИ "Склад дар Тоҷикистон" ---
@@ -142,51 +143,55 @@ async def show_operator_contacts(message: types.Message):
     )
     await message.answer(operator_text)
 
-# --- ЛОГИКАИ ТАФТИШИ ТРЕК-КОД АЗ ФАЙЛҲО ---
+# --- ЛОГИКА ПРОВЕРКИ МНОЖЕСТВА ТРЕК-КОДОВ ---
 @dp.message(TrackStates.waiting_for_track)
 async def check_track_code(message: types.Message, state: FSMContext):
-    user_track = message.text.strip()
-    found_status = None
-    found_date = None
+    user_tracks = [t.strip() for t in re.split(r'[\s,\n]+', message.text) if t.strip()]
+    
+    if not user_tracks:
+        await message.answer("❌ Шумо ҳеҷ гуна трек-код равон накардед. Лутфан қайд кунед!")
+        await state.clear()
+        return
 
+    loaded_data = {}
     for status_name, file_path in EXCEL_FILES.items():
         try:
             df = pd.read_excel(file_path)
             if 'Track' in df.columns:
-                df['Track'] = df['Track'].astype(str)
-                if user_track in df['Track'].values:
-                    found_status = status_name
-                    if 'Date' in df.columns:
-                        row = df[df['Track'] == user_track].iloc[0]
-                        found_date = str(row['Date']).strip()
-                        if found_date == "nan" or found_date == "":
-                            found_date = None
-                    break 
+                df['Track'] = df['Track'].astype(str).str.strip()
+                loaded_data[status_name] = df
         except FileNotFoundError:
             logging.error(f"Файл {file_path} наёфт шуд!")
-            continue
         except Exception as e:
             logging.error(f"Хатогӣ ҳангоми хондани {file_path}: {e}")
-            continue
 
-    date_text = f"\n📅 **Сана:** {found_date}" if found_date else ""
+    final_response = "📋 **Натиҷаи тафтиши трек-кодҳои шумо:**\n\n"
 
-    if found_status == "🏪 Аз мағозаи 1001":
-        await message.answer(
-            f"✅ Бале, бори шумо бо трек-коди ({user_track}) қабул карда шуд!{date_text}\n"
-            f"Шумо метавонед омада онро **аз мағозаи 1001** гиред."
-        )
-    elif found_status is not None:
-        await message.answer(
-            f"ℹ️ Ҳолати бори шумо бо трек-коди ({user_track}):\n"
-            f"📌 **{found_status}**{date_text}"
-        )
-    else:
-        await message.answer(
-            f"❌ Маълумот барои трек-коди ({user_track}) ёфт нашуд.\n"
-            f"Эҳтимол бор ҳанӯз ба склади мо дар Чин нарасидааст.\n"
-            f"Барои дақиқ кардан бо дастгирӣ тамос гиред."
-        )
+    for track in user_tracks:
+        found_status = None
+        found_date = None
+        
+        for status_name, df in loaded_data.items():
+            if track in df['Track'].values:
+                found_status = status_name
+                if 'Date' in df.columns:
+                    row = df[df['Track'] == track].iloc[0]
+                    found_date = str(row['Date']).strip()
+                    if found_date in ["nan", "", "None"]:
+                        found_date = None
+                break
+        
+        date_text = f" (📅 Сана: {found_date})" if found_date else ""
+        
+        # ОБНОВЛЕННЫЙ ТЕКСТ ПОД ВАШ ЗАПРОС (Именно для склада 1001)
+        if found_status == "🏪 Аз мағозаи 1001":
+            final_response += f"🔹 **{track}**: ✅ Бори шумо омадааст! Метавонед онро омада **аз мағозаи 1001** гиред.{date_text}\n"
+        elif found_status is not None:
+            final_response += f"🔹 **{track}**: 📌 Статус: **{found_status}**{date_text}\n"
+        else:
+            final_response += f"🔹 **{track}**: ❌ Маълумот ёфт нашуд (Ҳанӯз ба Чин нарасидааст).\n"
+
+    await message.answer(text=final_response, parse_mode="Markdown")
     await state.clear()
 
 # --- УНИВЕРСАЛЬНАЯ ЛОГИКА ЗАПУСКА (И ДЛЯ ПК, И ДЛЯ RENDER) ---
