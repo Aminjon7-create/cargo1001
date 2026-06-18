@@ -27,12 +27,23 @@ EXCEL_FILES = {
     "Супорида шуд": "delivered.xlsx"
 }
 
+# Список текстов всех кнопок меню, чтобы бот не путал их с трек-кодами
+MENU_BUTTONS = [
+    "🔢 Тафтиши трек-код",
+    "✅ Склад дар Хитой",
+    "📍 Склад дар Тоҷикистон",
+    "💲 Нархнома",
+    "❌ Молҳои манъшуда",
+    "👤 Тамос бо оператор"
+]
+
 # Состояния для ожидания ввода
 class TrackStates(StatesGroup):
     waiting_for_track = State()
 
 @dp.message(CommandStart())
-async def cmd_start(message: types.Message):
+async def cmd_start(message: types.Message, state: FSMContext):
+    await state.clear() # Сбрасываем состояния при старте
     welcome_text = (
         "👋 Бахши лозимаро дар менюи поён интихоб намоед!\n\n"
         "📦 **1001 Cargo** — Барномаро зеркаш кунед ва фармоишҳои "
@@ -57,7 +68,7 @@ async def cmd_start(message: types.Message):
 
 # --- ОБРАБОТЧИК ДЛЯ КНОПКИ "Молҳои манъшуда" ---
 @dp.message(F.text == "❌ Молҳои манъшуда")
-async def show_banned_items(message: types.Message):
+async def show_banned_items(message: types.Message, state: FSMContext):
     banned_text = (
         "🚫 **Рӯйхати молҳои барои интиқол манъшуда тавассути 1001 Cargo**\n\n"
         "Барои таъмини бехатарӣ ва риояи қоидаҳои гумрукӣ, интиқоли ин намуди молҳо қатъиян манъ аст:\n\n"
@@ -69,7 +80,7 @@ async def show_banned_items(message: types.Message):
         "🌿 **6. Растаниҳо:** Гулу растаниҳои зинда.\n"
         "🚫 **7. Молҳои категорияи 18+:** Интиқоли ин намуди молҳо қатъиян манъ аст❗️\n\n"
         "⚠️ **Донистани он муҳим аст:**\n"
-        "Кӯшиши фармоиш додан ё фиристодани молҳои манъшуда боис ба мусодираи онҳо бидуни бозгашт мегардад. "
+        "Кӯшиши фармоиш додан ё фиристодани молҳои манъшуда боис ба мусодираи онҳо бидуни бозгашт變 گردد. "
         "Дар ин ҳолат ширкати **1001 Cargo** ҳеҷ гуна масъулияти молиро ба уҳда намегирад.\n\n"
         "🙏 Хоҳишмандем, ки ин қоидаҳоро дуруст фаҳмед ва тартиби интиқолро риоя намоед!"
     )
@@ -77,7 +88,7 @@ async def show_banned_items(message: types.Message):
 
 # --- ОБРАБОТЧИК ДЛЯ КНОПКИ "Склад дар Хитой" ---
 @dp.message(F.text == "✅ Склад дар Хитой")
-async def show_china_warehouse(message: types.Message):
+async def show_china_warehouse(message: types.Message, state: FSMContext):
     china_photo_path = "china.photo.jpg"  
     china_text = (
         " Zfd1001\n"
@@ -93,7 +104,7 @@ async def show_china_warehouse(message: types.Message):
 
 # --- ОБРАБОТЧИК ДЛЯ КНОПКИ "Нархнома" ---
 @dp.message(F.text == "💲 Нархнома")
-async def show_price_list(message: types.Message):
+async def show_price_list(message: types.Message, state: FSMContext):
     price_text = (
         "💲 **Нархнома :**\n\n"
         "⚖️ Аз **1 кг** то **5 кг** — 26 сомонӣ\n"
@@ -116,7 +127,7 @@ async def ask_track_code(message: types.Message, state: FSMContext):
 
 # --- ОБРАБОТЧИК ДЛЯ КНОПКИ "Склад дар Тоҷикистон" ---
 @dp.message(F.text == "📍 Склад дар Тоҷикистон")
-async def show_tajikistan_warehouse(message: types.Message):
+async def show_tajikistan_warehouse(message: types.Message, state: FSMContext):
     photo_path = "1001 photo.jpg"  
     warehouse_text = (
         "📍 **Маълумот дар бораи склади мо дар Тоҷикистон**\n\n"
@@ -135,7 +146,7 @@ async def show_tajikistan_warehouse(message: types.Message):
 
 # --- ОБРАБОТЧИК ДЛЯ КНОПКИ "Тамос бо оператор" ---
 @dp.message(F.text == "👤 Тамос бо оператор")
-async def show_operator_contacts(message: types.Message):
+async def show_operator_contacts(message: types.Message, state: FSMContext):
     operator_text = (
         "👤 **Тамос бо операторони мо:**\n\n"
         "💬 @aminovrich\n"
@@ -143,14 +154,11 @@ async def show_operator_contacts(message: types.Message):
     )
     await message.answer(operator_text)
 
-# --- ЛОГИКА ПРОВЕРКИ МНОЖЕСТВА ТРЕК-КОДОВ ---
-@dp.message(TrackStates.waiting_for_track)
-async def check_track_code(message: types.Message, state: FSMContext):
-    user_tracks = [t.strip() for t in re.split(r'[\s,\n]+', message.text) if t.strip()]
+# --- ЕДИНАЯ ФУНКЦИЯ ДЛЯ ПРОВЕРКИ ТРЕКОВ ---
+async def process_track_checking(message: types.Message, track_text: str):
+    user_tracks = [t.strip() for t in re.split(r'[\s,\n]+', track_text) if t.strip()]
     
     if not user_tracks:
-        await message.answer("❌ Шумо ҳеҷ гуна трек-код равон накардед. Лутфан қайд кунед!")
-        await state.clear()
         return
 
     loaded_data = {}
@@ -183,7 +191,6 @@ async def check_track_code(message: types.Message, state: FSMContext):
         
         date_text = f" (📅 Сана: {found_date})" if found_date else ""
         
-        # ОБНОВЛЕННЫЙ ТЕКСТ ПОД ВАШ ЗАПРОС (Именно для склада 1001)
         if found_status == "🏪 Аз мағозаи 1001":
             final_response += f"🔹 **{track}**: ✅ Бори шумо омадааст! Метавонед онро омада **аз мағозаи 1001** гиред.{date_text}\n"
         elif found_status is not None:
@@ -192,7 +199,27 @@ async def check_track_code(message: types.Message, state: FSMContext):
             final_response += f"🔹 **{track}**: ❌ Маълумот ёфт нашуд (Ҳанӯз ба Чин нарасидааст).\n"
 
     await message.answer(text=final_response, parse_mode="Markdown")
-    await state.clear()
+
+# --- 1. ЛОГИКА ПРОВЕРКИ, ЕСЛИ ПОЛЬЗОВАТЕЛЬ НАХОДИТСЯ В СОСТОЯНИИ ОЖИДАНИЯ ---
+@dp.message(TrackStates.waiting_for_track)
+async def check_track_code_state(message: types.Message, state: FSMContext):
+    # Если пользователь нажал на другую кнопку меню вместо отправки трека, выходим из состояния и обрабатываем кнопку
+    if message.text in MENU_BUTTONS:
+        await state.clear()
+        return 
+        
+    await process_track_checking(message, message.text)
+    # ЗДЕСЬ мы НЕ вызываем state.clear(), чтобы пользователь мог слать треки дальше без повторного нажатия кнопки!
+
+# --- 2. АВТО-ОТЛОВ ТРЕКОВ (ЕСЛИ ПОЛЬЗОВАТЕЛЬ ВООБЩЕ НЕ НАЖИМАЛ КНОПКУ ПРОВЕРКИ) ---
+@dp.message(F.text)
+async def catch_any_track_code(message: types.Message):
+    # Игнорируем команды и обычные кнопки меню
+    if message.text.startswith("/") or message.text in MENU_BUTTONS:
+        return
+        
+    # Любой другой текст бот автоматически считает трек-кодом и проверяет!
+    await process_track_checking(message, message.text)
 
 # --- УНИВЕРСАЛЬНАЯ ЛОГИКА ЗАПУСКА (И ДЛЯ ПК, И ДЛЯ RENDER) ---
 async def on_startup(bot: Bot) -> None:
