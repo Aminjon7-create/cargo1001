@@ -21,7 +21,7 @@ dp = Dispatcher()
 
 # Названия файлов и обновленные статусы
 EXCEL_FILES = {
-    "🇨🇳 Дар склади Чин": "china.xlsx",
+    "🇨🇳 Дар склади Хитой": "china.xlsx",
     "🚛 Дар роҳ": "on_the_way.xlsx",
     "🏪 Аз мағозаи 1001": "zafarabad.xlsx",  
     "Супорида шуд": "delivered.xlsx"
