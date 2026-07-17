@@ -12,7 +12,7 @@ from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_applicati
 from aiohttp import web
 
 # Токен твоего бота
-BOT_TOKEN = "8622628502:AAEkDRwCEPBK91g8TRPKcQVBT67aj4DcCmE"
+BOT_TOKEN = "8622628502:AAEBqB1dTZV14jE23Gut8JC9bYxXAZzsDIE"
 
 bot = Bot(token=BOT_TOKEN)
 logging.basicConfig(level=logging.INFO)
