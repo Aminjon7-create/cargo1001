@@ -13,7 +13,7 @@ from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_applicati
 from aiohttp import web
 
 # --- ВСТАВЬТЕ СЮДА ВАШ НОВЫЙ ТОКЕН ОТ BOTFATHER ---
-BOT_TOKEN = "8622628502:AAHg_3S78NetQAMwq57GQZvA_djcLgdfga4"
+BOT_TOKEN = "88622628502:AAFtw9P0ov7jyi0SvTOEW8notpqEBMpPeZA"
 
 bot = Bot(token=BOT_TOKEN)
 logging.basicConfig(level=logging.INFO)
